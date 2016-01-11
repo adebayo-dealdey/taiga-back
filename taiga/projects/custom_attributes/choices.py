@@ -21,9 +21,11 @@ from django.utils.translation import ugettext_lazy as _
 TEXT_TYPE = "text"
 MULTILINE_TYPE = "multiline"
 DATE_TYPE = "date"
+SELECT_TYPE = "select"
 
 TYPES_CHOICES = (
     (TEXT_TYPE, _("Text")),
     (MULTILINE_TYPE, _("Multi-Line Text")),
-    (DATE_TYPE, _("Date"))
+    (DATE_TYPE, _("Date")),
+    (SELECT_TYPE, _("Drop-Down Text"))
 )
