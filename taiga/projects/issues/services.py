@@ -83,7 +83,7 @@ def issues_to_csv(project, queryset):
     csv_data = io.StringIO()
     fieldnames = ["ref", "subject", "description", "milestone", "owner",
                   "owner_full_name", "assigned_to", "assigned_to_full_name",
-                  "status", "severity", "priority", "type", "is_closed",
+                  "status", "severity", "priority", "trigger", "type", "is_closed",
                   "attachments", "external_reference", "tags",
                   "watchers", "voters",
                   "created_date", "modified_date", "finished_date"]
@@ -105,6 +105,7 @@ def issues_to_csv(project, queryset):
             "status": issue.status.name,
             "severity": issue.severity.name,
             "priority": issue.priority.name,
+            "trigger": issue.trigger.name,
             "type": issue.type.name,
             "is_closed": issue.is_closed,
             "attachments": issue.attachments.count(),
@@ -290,6 +291,47 @@ def _get_issues_severities(project, queryset):
     return sorted(result, key=itemgetter("order"))
 
 
+def _get_issues_triggers(project, queryset):
+    compiler = connection.ops.compiler(queryset.query.compiler)(queryset.query, connection, None)
+    queryset_where_tuple = queryset.query.where.as_sql(compiler, connection)
+    where = queryset_where_tuple[0]
+    where_params = queryset_where_tuple[1]
+
+    extra_sql = """
+        WITH counters AS (
+            SELECT trigger_id, count(trigger_id) count
+                FROM "issues_issue"
+                INNER JOIN "projects_project" ON ("issues_issue"."project_id" = "projects_project"."id")
+                WHERE {where}
+                GROUP BY trigger_id
+               )
+        SELECT "projects_trigger"."id",
+             "projects_trigger"."name",
+             "projects_trigger"."color",
+             "projects_trigger"."order",
+             COALESCE(counters.count, 0)
+        FROM "projects_trigger"
+        LEFT OUTER JOIN counters ON counters.trigger_id = projects_trigger.id
+        WHERE "projects_trigger"."project_id" = %s
+        ORDER BY "projects_trigger"."order";
+    """.format(where=where)
+
+    with closing(connection.cursor()) as cursor:
+        cursor.execute(extra_sql, where_params + [project.id])
+        rows = cursor.fetchall()
+
+    result = []
+    for id, name, color, order, count in rows:
+        result.append({
+            "id": id,
+            "name": _(name),
+            "color": color,
+            "order": order,
+            "count": count,
+        })
+    return sorted(result, key=itemgetter("order"))
+
+
 def _get_issues_assigned_to(project, queryset):
     compiler = connection.ops.compiler(queryset.query.compiler)(queryset.query, connection, None)
     queryset_where_tuple = queryset.query.where.as_sql(compiler, connection)
@@ -420,6 +462,7 @@ def get_issues_filters_data(project, querysets):
         ("statuses", _get_issues_statuses(project, querysets["statuses"])),
         ("priorities", _get_issues_priorities(project, querysets["priorities"])),
         ("severities", _get_issues_severities(project, querysets["severities"])),
+        ("triggers", _get_issues_triggers(project, querysets["triggers"])),
         ("assigned_to", _get_issues_assigned_to(project, querysets["assigned_to"])),
         ("owners", _get_issues_owners(project, querysets["owners"])),
         ("tags", _get_issues_tags(querysets["tags"])),

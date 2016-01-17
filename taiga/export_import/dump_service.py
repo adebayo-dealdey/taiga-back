@@ -104,6 +104,7 @@ def dict_to_project(data, owner=None):
     service.store_choices(proj, data, "task_statuses", serializers.TaskStatusExportSerializer)
     service.store_choices(proj, data, "priorities", serializers.PriorityExportSerializer)
     service.store_choices(proj, data, "severities", serializers.SeverityExportSerializer)
+    service.store_choices(proj, data, "triggers", serializers.TriggerExportSerializer)
 
     if service.get_errors(clear=False):
         raise TaigaImportError(_("error importing lists of project attributes"))

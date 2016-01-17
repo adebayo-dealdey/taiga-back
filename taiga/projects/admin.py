@@ -76,7 +76,7 @@ class ProjectAdmin(admin.ModelAdmin):
 
     def formfield_for_foreignkey(self, db_field, request, **kwargs):
         if (db_field.name in ["default_points", "default_us_status", "default_task_status",
-                              "default_priority", "default_severity",
+                              "default_priority", "default_severity", "default_trigger",
                               "default_issue_status", "default_issue_type"]):
             if getattr(self, 'obj', None):
                 kwargs["queryset"] = db_field.related.model.objects.filter(
@@ -137,6 +137,10 @@ class PriorityAdmin(admin.ModelAdmin):
     list_display_links = ["name"]
     raw_id_fields = ["project"]
 
+class TriggerAdmin(admin.ModelAdmin):
+    list_display = ["project", "order", "name", "color"]
+    list_display_links = ["name"]
+    raw_id_fields = ["project"]
 
 class IssueTypeAdmin(admin.ModelAdmin):
     list_display = ["project", "order", "name", "color"]
@@ -161,5 +165,6 @@ admin.site.register(models.Project, ProjectAdmin)
 admin.site.register(models.Membership, MembershipAdmin)
 admin.site.register(models.Severity, SeverityAdmin)
 admin.site.register(models.Priority, PriorityAdmin)
+admin.site.register(models.Trigger, TriggerAdmin)
 admin.site.register(models.IssueType, IssueTypeAdmin)
 admin.site.register(models.ProjectTemplate, ProjectTemplateAdmin)

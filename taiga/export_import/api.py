@@ -149,10 +149,15 @@ class ProjectImporterViewSet(mixins.ImportThrottlingPolicyMixin, CreateModelMixi
                                   "severities",
                                   serializers.SeverityExportSerializer)
 
+        if "triggers" in data:
+            service.store_choices(project_serialized.object, data,
+                                  "triggers",
+                                  serializers.TriggerExportSerializer)
+
         if ("points" in data or "issues_types" in data or
                 "issues_statuses" in data or "us_statuses" in data or
                 "task_statuses" in data or "priorities" in data or
-                "severities" in data):
+                "severities" in data or "triggers" in data):
             service.store_default_choices(project_serialized.object, data)
 
         # Created custom attributes

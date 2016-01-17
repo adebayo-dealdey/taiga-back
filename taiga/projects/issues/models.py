@@ -44,6 +44,8 @@ class Issue(OCCModelMixin, WatchedModelMixin, BlockedMixin, TaggedMixin, models.
                                  related_name="issues", verbose_name=_("priority"))
     type = models.ForeignKey("projects.IssueType", null=True, blank=True,
                              related_name="issues", verbose_name=_("type"))
+    trigger = models.ForeignKey("projects.Trigger", null=True, blank=True,
+                             related_name="issues", verbose_name=_("trigger"))
     milestone = models.ForeignKey("milestones.Milestone", null=True, blank=True,
                                   default=None, related_name="issues",
                                   verbose_name=_("milestone"))
@@ -86,6 +88,9 @@ class Issue(OCCModelMixin, WatchedModelMixin, BlockedMixin, TaggedMixin, models.
 
         if not self.severity_id:
             self.severity = self.project.default_severity
+
+        if not self.trigger_id:
+            self.trigger = self.project.default_trigger
 
         if not self.priority_id:
             self.priority = self.project.default_priority

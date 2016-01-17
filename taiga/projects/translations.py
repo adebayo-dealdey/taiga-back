@@ -164,6 +164,21 @@ _("Critical")
 
 
 ##########################
+## Triggers
+##########################
+# Translators: Issue trigger
+_("Administrative")
+# Translators: Issue trigger
+_("Design & Development")
+# Translators: Issue trigger
+_("Customer Experience")
+# Translators: Issue trigger
+_("Ware House")
+# Translators: Issue trigger
+_("Finance")
+
+
+##########################
 ## Roles
 ##########################
 # Translators: User role

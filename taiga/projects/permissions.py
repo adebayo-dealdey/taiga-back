@@ -149,6 +149,16 @@ class PriorityPermission(TaigaResourcePermission):
     bulk_update_order_perms = IsProjectOwner()
 
 
+class TriggerPermission(TaigaResourcePermission):
+    retrieve_perms = HasProjectPerm('view_project')
+    create_perms = IsProjectOwner()
+    update_perms = IsProjectOwner()
+    partial_update_perms = IsProjectOwner()
+    destroy_perms = IsProjectOwner()
+    list_perms = AllowAny()
+    bulk_update_order_perms = IsProjectOwner()
+
+
 class IssueStatusPermission(TaigaResourcePermission):
     retrieve_perms = HasProjectPerm('view_project')
     create_perms = IsProjectOwner()

@@ -35,7 +35,7 @@ class IssueAdmin(admin.ModelAdmin):
         return self.obj
 
     def formfield_for_foreignkey(self, db_field, request, **kwargs):
-        if (db_field.name in ["status", "priority", "severity", "type", "milestone"]
+        if (db_field.name in ["status", "priority", "severity", "type", "trigger", "milestone"]
                 and getattr(self, 'obj', None)):
             kwargs["queryset"] = db_field.related.model.objects.filter(
                                                       project=self.obj.project)

@@ -67,19 +67,21 @@ def get_stats_for_project_issues(project):
         'issues_per_status': {},
         'issues_per_priority': {},
         'issues_per_severity': {},
+        'issues_per_trigger': {},
         'issues_per_owner': {},
         'issues_per_assigned_to': {},
         'last_four_weeks_days': {
             'by_open_closed': {'open': [], 'closed': []},
             'by_severity': {},
             'by_priority': {},
+            'by_trigger': {},
             'by_status': {},
         }
 
     }
 
     issues = project.issues.all().select_related(
-        'status', 'priority', 'type', 'severity', 'owner', 'assigned_to'
+        'status', 'priority', 'type', 'severity', 'trigger', 'owner', 'assigned_to'
     )
     for issue in issues:
         project_issues_stats['total_issues'] += 1
@@ -91,6 +93,7 @@ def get_stats_for_project_issues(project):
         _count_status_object(issue.status, project_issues_stats['issues_per_status'])
         _count_status_object(issue.priority, project_issues_stats['issues_per_priority'])
         _count_status_object(issue.severity, project_issues_stats['issues_per_severity'])
+        _count_status_object(issue.trigger, project_issues_stats['issues_per_trigger'])
         _count_owned_object(issue.owner, project_issues_stats['issues_per_owner'])
         _count_owned_object(issue.assigned_to, project_issues_stats['issues_per_assigned_to'])
 
@@ -103,6 +106,11 @@ def get_stats_for_project_issues(project):
         project_issues_stats['last_four_weeks_days']['by_priority'][priority['id']] = copy.copy(priority)
         del(project_issues_stats['last_four_weeks_days']['by_priority'][priority['id']]['count'])
         project_issues_stats['last_four_weeks_days']['by_priority'][priority['id']]['data'] = []
+
+    for trigger in project_issues_stats['issues_per_trigger'].values():
+        project_issues_stats['last_four_weeks_days']['by_trigger'][trigger['id']] = copy.copy(trigger)
+        del(project_issues_stats['last_four_weeks_days']['by_trigger'][trigger['id']]['count'])
+        project_issues_stats['last_four_weeks_days']['by_trigger'][trigger['id']]['data'] = []
 
     for x in range(27, -1, -1):
         day = datetime.datetime.combine(datetime.date.today(), datetime.time(0, 0)) - datetime.timedelta(days=x)
@@ -131,6 +139,11 @@ def get_stats_for_project_issues(project):
             by_priority = filter(lambda x: x.priority_id == priority, opened_this_day)
             by_priority = len(list(by_priority))
             project_issues_stats['last_four_weeks_days']['by_priority'][priority]['data'].append(by_priority)
+
+        for trigger in project_issues_stats['last_four_weeks_days']['by_trigger']:
+            by_trigger = filter(lambda x: x.trigger_id == trigger, opened_this_day)
+            by_trigger = len(list(by_trigger))
+            project_issues_stats['last_four_weeks_days']['by_trigger'][trigger]['data'].append(by_trigger)
 
     return project_issues_stats
 

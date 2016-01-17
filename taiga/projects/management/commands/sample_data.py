@@ -288,6 +288,8 @@ class Command(BaseCommand):
                                                                                      project=project)),
                                    priority=self.sd.db_object_from_queryset(Priority.objects.filter(
                                                                                     project=project)),
+                                   trigger=self.sd.db_object_from_queryset(Trigger.objects.filter(
+                                                                                    project=project)),
                                    type=self.sd.db_object_from_queryset(IssueType.objects.filter(
                                                                                  project=project)),
                                    tags=self.sd.words(1, 10).split(" "))

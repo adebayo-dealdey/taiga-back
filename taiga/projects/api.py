@@ -350,6 +350,20 @@ class PriorityViewSet(MoveOnDestroyMixin, ModelCrudViewSet, BulkUpdateOrderMixin
     move_on_destroy_project_default_field = "default_priority"
 
 
+class TriggerViewSet(MoveOnDestroyMixin, ModelCrudViewSet, BulkUpdateOrderMixin):
+    model = models.Trigger
+    serializer_class = serializers.TriggerSerializer
+    permission_classes = (permissions.TriggerPermission,)
+    filter_backends = (filters.CanViewProjectFilterBackend,)
+    filter_fields = ("project",)
+    bulk_update_param = "bulk_triggers"
+    bulk_update_perm = "change_trigger"
+    bulk_update_order_action = services.bulk_update_trigger_order
+    move_on_destroy_related_class = Issue
+    move_on_destroy_related_field = "trigger"
+    move_on_destroy_project_default_field = "default_trigger"
+
+
 class IssueTypeViewSet(MoveOnDestroyMixin, ModelCrudViewSet, BulkUpdateOrderMixin):
     model = models.IssueType
     serializer_class = serializers.IssueTypeSerializer

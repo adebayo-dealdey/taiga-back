@@ -31,7 +31,7 @@ from taiga.projects.notifications.mixins import WatchedResourceMixin, WatchersVi
 from taiga.projects.occ import OCCResourceMixin
 from taiga.projects.history.mixins import HistoryResourceMixin
 
-from taiga.projects.models import Project, IssueStatus, Severity, Priority, IssueType
+from taiga.projects.models import Project, IssueStatus, Severity, Priority, Trigger, IssueType
 from taiga.projects.milestones.models import Milestone
 from taiga.projects.votes.mixins.viewsets import VotedResourceMixin, VotersViewSetMixin
 
@@ -50,6 +50,7 @@ class IssueViewSet(OCCResourceMixin, VotedResourceMixin, HistoryResourceMixin, W
                        filters.AssignedToFilter,
                        filters.StatusesFilter,
                        filters.IssueTypesFilter,
+                       filters.TriggersFilter,
                        filters.SeveritiesFilter,
                        filters.PrioritiesFilter,
                        filters.TagsFilter,
@@ -60,6 +61,7 @@ class IssueViewSet(OCCResourceMixin, VotedResourceMixin, HistoryResourceMixin, W
                                 filters.AssignedToFilter,
                                 filters.StatusesFilter,
                                 filters.IssueTypesFilter,
+                                filters.TriggersFilter,
                                 filters.SeveritiesFilter,
                                 filters.PrioritiesFilter,
                                 filters.TagsFilter,
@@ -72,6 +74,7 @@ class IssueViewSet(OCCResourceMixin, VotedResourceMixin, HistoryResourceMixin, W
                        "status",
                        "severity",
                        "priority",
+                       "trigger",
                        "created_date",
                        "modified_date",
                        "owner",
@@ -137,6 +140,15 @@ class IssueViewSet(OCCResourceMixin, VotedResourceMixin, HistoryResourceMixin, W
                     except IssueType.DoesNotExist:
                         request.DATA['type'] = new_project.default_issue_type.id
 
+                trigger_id = request.DATA.get('trigger', None)
+                if trigger_id is not None:
+                    try:
+                        old_trigger = self.object.project.triggers.get(pk=trigger_id)
+                        new_trigger = new_project.triggers.get(name=old_trigger.name)
+                        request.DATA['trigger'] = new_trigger.id
+                    except Trigger.DoesNotExist:
+                        request.DATA['trigger'] = new_project.default_trigger.id
+
             except Project.DoesNotExist:
                 return response.BadRequest(_("The project doesn't exist"))
 
@@ -174,6 +186,10 @@ class IssueViewSet(OCCResourceMixin, VotedResourceMixin, HistoryResourceMixin, W
             raise exc.PermissionDenied(_("You don't have permissions to set this priority "
                                          "to this issue."))
 
+        if obj.trigger and obj.trigger.project != obj.project:
+            raise exc.PermissionDenied(_("You don't have permissions to set this trigger "
+                                         "to this issue."))
+
         if obj.type and obj.type.project != obj.project:
             raise exc.PermissionDenied(_("You don't have permissions to set this type "
                                          "to this issue."))
@@ -193,6 +209,7 @@ class IssueViewSet(OCCResourceMixin, VotedResourceMixin, HistoryResourceMixin, W
         filter_backends = self.get_filter_backends()
         types_filter_backends = (f for f in filter_backends if f != filters.IssueTypesFilter)
         statuses_filter_backends = (f for f in filter_backends if f != filters.StatusesFilter)
+        triggers_filter_backends = (f for f in filter_backends if f != filters.TriggersFilter)
         assigned_to_filter_backends = (f for f in filter_backends if f != filters.AssignedToFilter)
         owners_filter_backends = (f for f in filter_backends if f != filters.OwnersFilter)
         priorities_filter_backends = (f for f in filter_backends if f != filters.PrioritiesFilter)
@@ -203,6 +220,7 @@ class IssueViewSet(OCCResourceMixin, VotedResourceMixin, HistoryResourceMixin, W
         querysets = {
             "types": self.filter_queryset(queryset, filter_backends=types_filter_backends),
             "statuses": self.filter_queryset(queryset, filter_backends=statuses_filter_backends),
+            "triggers": self.filter_queryset(queryset, filter_backends=triggers_filter_backends),
             "assigned_to": self.filter_queryset(queryset, filter_backends=assigned_to_filter_backends),
             "owners": self.filter_queryset(queryset, filter_backends=owners_filter_backends),
             "priorities": self.filter_queryset(queryset, filter_backends=priorities_filter_backends),
@@ -234,8 +252,8 @@ class IssueViewSet(OCCResourceMixin, VotedResourceMixin, HistoryResourceMixin, W
             issues = services.create_issues_in_bulk(
                 data["bulk_issues"], project=project, owner=request.user,
                 status=project.default_issue_status, severity=project.default_severity,
-                priority=project.default_priority, type=project.default_issue_type,
-                callback=self.post_save, precall=self.pre_save)
+                trigger=project.default_trigger, priority=project.default_priority, 
+                type=project.default_issue_type, callback=self.post_save, precall=self.pre_save)
             issues_serialized = self.get_serializer_class()(issues, many=True)
 
             return response.Ok(data=issues_serialized.data)

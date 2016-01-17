@@ -148,6 +148,10 @@ class PrioritySerializer(serializers.ModelSerializer):
         model = models.Priority
         i18n_fields = ("name",)
 
+class TriggerSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = models.Trigger
+        i18n_fields = ("name",)
 
 class IssueStatusSerializer(serializers.ModelSerializer):
     class Meta:
@@ -351,6 +355,7 @@ class ProjectDetailSerializer(ProjectSerializer):
     issue_types = IssueTypeSerializer(many=True, required=False)
     priorities = PrioritySerializer(many=True, required=False)               # Issues
     severities = SeveritySerializer(many=True, required=False)
+    triggers = TriggerSerializer(many=True, required=False)
 
     userstory_custom_attributes = UserStoryCustomAttributeSerializer(source="userstorycustomattributes",
                                                                      many=True, required=False)
@@ -402,6 +407,7 @@ class ProjectTemplateSerializer(serializers.ModelSerializer):
     issue_types = JsonField(required=False, label=_("Issue's types"))
     priorities = JsonField(required=False, label=_("Priorities"))
     severities = JsonField(required=False, label=_("Severities"))
+    triggers = JsonField(required=False, label=_("Triggers"))
     roles = JsonField(required=False, label=_("Roles"))
 
     class Meta:

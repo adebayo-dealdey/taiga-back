@@ -116,6 +116,9 @@ class ProjectDefaults(models.Model):
     default_severity = models.OneToOneField("projects.Severity", on_delete=models.SET_NULL,
                                             related_name="+", null=True, blank=True,
                                             verbose_name=_("default severity"))
+    default_trigger = models.OneToOneField("projects.Trigger", on_delete=models.SET_NULL,
+                                            related_name="+", null=True, blank=True,
+                                            verbose_name=_("default trigger"))
     default_issue_status = models.OneToOneField("projects.IssueStatus",
                                                 on_delete=models.SET_NULL, related_name="+",
                                                 null=True, blank=True,
@@ -493,6 +496,29 @@ class Severity(models.Model):
         return self.name
 
 
+class Trigger(models.Model):
+    name = models.CharField(max_length=255, null=False, blank=False,
+                            verbose_name=_("name"))
+    order = models.IntegerField(default=10, null=False, blank=False,
+                                verbose_name=_("order"))
+    color = models.CharField(max_length=20, null=False, blank=False, default="#999999",
+                             verbose_name=_("color"))
+    project = models.ForeignKey("Project", null=False, blank=False,
+                                related_name="triggers", verbose_name=_("project"))
+
+    class Meta:
+        verbose_name = "trigger"
+        verbose_name_plural = "triggers"
+        ordering = ["project", "order", "name"]
+        unique_together = ("project", "name")
+        permissions = (
+            ("view_trigger", "Can view trigger"),
+        )
+
+    def __str__(self):
+        return self.name
+
+
 class IssueStatus(models.Model):
     name = models.CharField(max_length=255, null=False, blank=False,
                             verbose_name=_("name"))
@@ -589,6 +615,7 @@ class ProjectTemplate(models.Model):
     issue_types = JsonField(null=True, blank=True, verbose_name=_("issue types"))
     priorities = JsonField(null=True, blank=True, verbose_name=_("priorities"))
     severities = JsonField(null=True, blank=True, verbose_name=_("severities"))
+    triggers = JsonField(null=True, blank=True, verbose_name=_("triggers"))
     roles = JsonField(null=True, blank=True, verbose_name=_("roles"))
     _importing = None
 
@@ -623,7 +650,8 @@ class ProjectTemplate(models.Model):
             "issue_status": getattr(project.default_issue_status, "name", None),
             "issue_type": getattr(project.default_issue_type, "name", None),
             "priority": getattr(project.default_priority, "name", None),
-            "severity": getattr(project.default_severity, "name", None)
+            "severity": getattr(project.default_severity, "name", None),
+            "trigger": getattr(project.default_trigger, "name", None)
         }
 
         self.us_statuses = []
@@ -688,6 +716,14 @@ class ProjectTemplate(models.Model):
                 "name": severity.name,
                 "color": severity.color,
                 "order": severity.order,
+            })
+
+        self.triggers = []
+        for trigger in project.triggers.all():
+            self.triggers.append({
+                "name": trigger.name,
+                "color": trigger.color,
+                "order": trigger.order,
             })
 
         self.roles = []
@@ -784,6 +820,14 @@ class ProjectTemplate(models.Model):
                 project=project
             )
 
+        for trigger in self.triggers:
+            Trigger.objects.create(
+                name=trigger["name"],
+                color=trigger["color"],
+                order=trigger["order"],
+                project=project
+            )
+
         for role in self.roles:
             Role.objects.create(
                 name=role["name"],
@@ -817,5 +861,8 @@ class ProjectTemplate(models.Model):
 
         if self.severities:
             project.default_severity = Severity.objects.get(name=self.default_options["severity"], project=project)
+
+        if self.triggers:
+            project.default_trigger = Trigger.objects.get(name=self.default_options["trigger"], project=project)
 
         return project

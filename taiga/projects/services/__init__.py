@@ -20,6 +20,7 @@
 from .bulk_update_order import update_projects_order_in_bulk
 from .bulk_update_order import bulk_update_severity_order
 from .bulk_update_order import bulk_update_priority_order
+from .bulk_update_order import bulk_update_trigger_order
 from .bulk_update_order import bulk_update_issue_type_order
 from .bulk_update_order import bulk_update_issue_status_order
 from .bulk_update_order import bulk_update_task_status_order

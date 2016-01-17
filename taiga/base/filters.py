@@ -428,6 +428,10 @@ class SeveritiesFilter(BaseRelatedFieldsFilter):
     filter_name = 'severity'
 
 
+class TriggersFilter(BaseRelatedFieldsFilter):
+    filter_name = 'trigger'
+
+
 class TagsFilter(FilterBackend):
     filter_name = 'tags'
 

@@ -361,6 +361,12 @@ class SeverityExportSerializer(serializers.ModelSerializer):
         exclude = ('id', 'project')
 
 
+class TriggerExportSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = projects_models.Trigger
+        exclude = ('id', 'project')
+
+
 class IssueTypeExportSerializer(serializers.ModelSerializer):
     class Meta:
         model = projects_models.IssueType
@@ -575,6 +581,7 @@ class IssueExportSerializer(CustomAttributesValuesExportSerializerMixin, History
     assigned_to = UserRelatedField(required=False)
     priority = ProjectRelatedField(slug_field="name")
     severity = ProjectRelatedField(slug_field="name")
+    trigger = ProjectRelatedField(slug_field="name")
     type = ProjectRelatedField(slug_field="name")
     milestone = ProjectRelatedField(slug_field="name", required=False)
     votes = serializers.SerializerMethodField("get_votes")
@@ -648,6 +655,7 @@ class ProjectExportSerializer(WatcheableObjectModelSerializer):
     default_task_status = serializers.SlugRelatedField(slug_field="name", required=False)
     default_priority = serializers.SlugRelatedField(slug_field="name", required=False)
     default_severity = serializers.SlugRelatedField(slug_field="name", required=False)
+    default_trigger = serializers.SlugRelatedField(slug_field="name", required=False)
     default_issue_status = serializers.SlugRelatedField(slug_field="name", required=False)
     default_issue_type = serializers.SlugRelatedField(slug_field="name", required=False)
     memberships = MembershipExportSerializer(many=True, required=False)
@@ -657,6 +665,7 @@ class ProjectExportSerializer(WatcheableObjectModelSerializer):
     issue_statuses = IssueStatusExportSerializer(many=True, required=False)
     priorities = PriorityExportSerializer(many=True, required=False)
     severities = SeverityExportSerializer(many=True, required=False)
+    triggers = TriggerExportSerializer(many=True, required=False)
     issue_types = IssueTypeExportSerializer(many=True, required=False)
     userstorycustomattributes = UserStoryCustomAttributeExportSerializer(many=True, required=False)
     taskcustomattributes = TaskCustomAttributeExportSerializer(many=True, required=False)

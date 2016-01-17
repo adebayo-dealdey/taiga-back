@@ -138,9 +138,9 @@ def store_project(data):
     for key, value in data.items():
         excluded_fields = [
             "default_points", "default_us_status", "default_task_status",
-            "default_priority", "default_severity", "default_issue_status",
+            "default_priority", "default_severity", "default_trigger", "default_issue_status",
             "default_issue_type", "memberships", "points", "us_statuses",
-            "task_statuses", "issue_statuses", "priorities", "severities",
+            "task_statuses", "issue_statuses", "priorities", "severities", "triggers"
             "issue_types", "userstorycustomattributes", "taskcustomattributes",
             "issuecustomattributes", "roles", "milestones", "wiki_pages",
             "wiki_links", "notify_policies", "user_stories", "issues", "tasks",
@@ -260,6 +260,7 @@ def store_default_choices(project, data):
     helper(project, "default_task_status", project.task_statuses, data)
     helper(project, "default_priority", project.priorities, data)
     helper(project, "default_severity", project.severities, data)
+    helper(project, "default_trigger", project.triggers, data)
     project._importing = True
     project.save()
 
@@ -519,6 +520,9 @@ def store_issue(project, data):
 
     if "severity" not in data and project.default_severity:
         data["severity"] = project.default_severity.name
+
+    if "trigger" not in data and project.default_trigger:
+        data["trigger"] = project.default_trigger.name
 
     if serialized.is_valid():
         serialized.object.project = project
