@@ -46,6 +46,8 @@ def _push_to_timelines(project, user, obj, event_type, created_datetime, extra_d
             namespace=build_project_namespace(project),
             extra_data=extra_data)
 
+        project.refresh_totals()
+
         if hasattr(obj, "get_related_people"):
             related_people = obj.get_related_people()
 
@@ -74,6 +76,9 @@ def on_new_history_entry(sender, instance, created, **kwargs):
         return
 
     if instance.is_hidden:
+        return None
+
+    if instance.user["pk"] is None:
         return None
 
     model = history_services.get_model_from_key(instance.key)

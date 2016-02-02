@@ -54,7 +54,7 @@ def generate_random_hex_color():
 def get_user_file_path(instance, filename):
     basename = path.basename(filename).lower()
     base, ext = path.splitext(basename)
-    base = slugify(unidecode(base))
+    base = slugify(unidecode(base))[0:100]
     basename = "".join([base, ext])
 
     hs = hashlib.sha256()
@@ -241,21 +241,9 @@ class User(AbstractBaseUser, PermissionsMixin):
         self.colorize_tags = True
         self.token = None
         self.set_unusable_password()
-        self.delete_photo()
+        self.photo = None
         self.save()
         self.auth_data.all().delete()
-
-    def delete_photo(self):
-        # Removing thumbnails
-        thumbnailer = get_thumbnailer(self.photo)
-        thumbnailer.delete_thumbnails()
-
-        # Removing original photo
-        if self.photo:
-            storage, path = self.photo.storage, self.photo.path
-            storage.delete(path)
-
-        self.photo = None
 
 
 class Role(models.Model):
