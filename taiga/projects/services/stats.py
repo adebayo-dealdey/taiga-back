@@ -86,7 +86,7 @@ def get_stats_for_project_issues(project):
     )
     for issue in issues:
         project_issues_stats['total_issues'] += 1
-        if issue.status.is_closed:
+        if issue.status is not None and issue.status.is_closed:
             project_issues_stats['closed_issues'] += 1
         else:
             project_issues_stats['opened_issues'] += 1
@@ -209,8 +209,10 @@ def _get_milestones_stats_for_backlog(project, milestones):
 
         else:
             milestone_name = _("Future sprint")
-            team_increment = current_team_increment + project._future_team_increment,
-            client_increment = current_client_increment + project._future_client_increment,
+            current_team_increment += project._future_team_increment
+            current_client_increment += project._future_client_increment
+            team_increment = current_team_increment
+            client_increment = current_client_increment
             current_evolution = None
 
         milestones_stats.append({
@@ -229,8 +231,8 @@ def _get_milestones_stats_for_backlog(project, milestones):
         'name': _('Project End'),
         'optimal': optimal_points,
         'evolution': evolution,
-        'team-increment': team_increment,
-        'client-increment': client_increment,
+        'team-increment': current_team_increment,
+        'client-increment': current_client_increment,
     })
 
     return milestones_stats

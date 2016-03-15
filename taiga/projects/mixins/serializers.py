@@ -15,25 +15,26 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from django.utils import timezone
+from taiga.base.api import serializers
 
-from . import models
+from django.utils.translation import ugettext as _
 
+class ValidateDuplicatedNameInProjectMixin(serializers.ModelSerializer):
 
+    def validate_name(self, attrs, source):
+        """
+        Check the points name is not duplicated in the project on creation
+        """
+        model = self.opts.model
+        qs = None
+        # If the object exists:
+        if self.object and attrs.get(source, None):
+            qs = model.objects.filter(project=self.object.project, name=attrs[source]).exclude(id=self.object.id)
 
-def calculate_milestone_is_closed(milestone):
-    return (milestone.user_stories.all().count() > 0 and
-            all([task.status is not None and task.status.is_closed for task in milestone.tasks.all()]) and
-            all([user_story.is_closed for user_story in milestone.user_stories.all()]))
+        if not self.object and attrs.get("project", None)  and attrs.get(source, None):
+            qs = model.objects.filter(project=attrs["project"], name=attrs[source])
 
+        if qs and qs.exists():
+              raise serializers.ValidationError(_("Name duplicated for the project"))
 
-def close_milestone(milestone):
-    if not milestone.closed:
-        milestone.closed = True
-        milestone.save(update_fields=["closed",])
-
-
-def open_milestone(milestone):
-    if milestone.closed:
-        milestone.closed = False
-        milestone.save(update_fields=["closed",])
+        return attrs
