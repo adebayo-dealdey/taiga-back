@@ -22,10 +22,12 @@ TEXT_TYPE = "text"
 MULTILINE_TYPE = "multiline"
 DATE_TYPE = "date"
 SELECT_TYPE = "select"
+URL_TYPE = "url"
 
 TYPES_CHOICES = (
     (TEXT_TYPE, _("Text")),
     (MULTILINE_TYPE, _("Multi-Line Text")),
     (DATE_TYPE, _("Date")),
     (SELECT_TYPE, _("Drop-Down Text"))
+    (URL_TYPE, _("Url"))
 )
