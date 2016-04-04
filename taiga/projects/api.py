@@ -358,15 +358,12 @@ class ProjectViewSet(LikedResourceMixin, HistoryResourceMixin,
         user_model = apps.get_model("users", "User")
         try:
             user = user_model.objects.get(id=user_id)
-
         except user_model.DoesNotExist:
             return response.BadRequest(_("The user doesn't exist"))
 
-        # Check the user is an admin membership from the project
-        try:
-            project.memberships.get(is_admin=True, user=user)
-        except apps.get_model("projects", "Membership").DoesNotExist:
-            return response.BadRequest(_("The user must be an admin member of the project"))
+        # Check the user is a membership from the project
+        if not project.memberships.filter(user=user).exists():
+            return response.BadRequest(_("The user must be already a project member"))
 
         reason = request.DATA.get('reason', None)
         transfer_token = services.start_project_transfer(project, user, reason)
@@ -381,13 +378,12 @@ class ProjectViewSet(LikedResourceMixin, HistoryResourceMixin,
         project = self.get_object()
         self.check_permissions(request, "transfer_accept", project)
 
-        members = project.memberships.count()
         (enough_slots, not_enough_slots_error) = users_service.has_available_slot_for_project(
             request.user,
-            project=project,
-            members=members
+            project,
         )
         if not enough_slots:
+            members = project.memberships.count()
             raise exc.NotEnoughSlotsForProject(project.is_private, members, not_enough_slots_error)
 
         reason = request.DATA.get('reason', None)
@@ -422,15 +418,16 @@ class ProjectViewSet(LikedResourceMixin, HistoryResourceMixin,
             permissions_service.set_base_permissions_for_project(obj)
 
     def pre_save(self, obj):
-        user = self.request.user
-        (enough_slots, not_enough_slots_error) = users_service.has_available_slot_for_project(user, project=obj)
-        members = max(obj.memberships.count(), 1)
-        if not enough_slots:
-            raise exc.NotEnoughSlotsForProject(obj.is_private, members, not_enough_slots_error)
-
         if not obj.id:
-            obj.owner = user
+            obj.owner = self.request.user
             obj.template = self.request.QUERY_PARAMS.get('template', None)
+
+        # Validate if the owner have enought slots to create or update the project
+        # TODO: Move to the ProjectAdminSerializer
+        (enough_slots, not_enough_slots_error) = users_service.has_available_slot_for_project(obj.owner, obj)
+        if not enough_slots:
+            members = max(obj.memberships.count(), 1)
+            raise exc.NotEnoughSlotsForProject(obj.is_private, members, not_enough_slots_error)
 
         self._set_base_permissions(obj)
         super().pre_save(obj)
@@ -637,9 +634,9 @@ class MembershipViewSet(BlockedByProjectMixin, ModelCrudViewSet):
         if "bulk_memberships" in data and isinstance(data["bulk_memberships"], list):
             members = len(data["bulk_memberships"])
             (enough_slots, not_enough_slots_error) = users_service.has_available_slot_for_project(
-                request.user,
-                project=project,
-                members=members
+                project.owner,
+                project,
+                members
             )
             if not enough_slots:
                 raise exc.NotEnoughSlotsForProject(project.is_private, members, not_enough_slots_error)
@@ -675,8 +672,8 @@ class MembershipViewSet(BlockedByProjectMixin, ModelCrudViewSet):
             members = 1
             (enough_slots, not_enough_slots_error) = users_service.has_available_slot_for_project(
                 self.request.user,
-                project=obj.project,
-                members=members
+                obj.project,
+                members
             )
             if not enough_slots:
                 raise exc.NotEnoughSlotsForProject(obj.project.is_private, members, not_enough_slots_error)

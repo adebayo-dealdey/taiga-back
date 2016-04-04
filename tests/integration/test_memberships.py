@@ -74,7 +74,34 @@ def test_api_create_bulk_members_without_enough_memberships_private_project_slot
     response = client.json.post(url, json.dumps(data))
 
     assert response.status_code == 400
-    assert "reached the limit of memberships for private" in response.data["_error_message"]
+    assert "reached your current limit of memberships for private" in response.data["_error_message"]
+
+
+
+def test_api_create_bulk_members_for_admin_without_enough_memberships_private_project_slots_one_project(client):
+    owner = f.UserFactory.create(max_memberships_private_projects=3)
+    user = f.UserFactory.create()
+    project = f.ProjectFactory(owner=owner, is_private=True)
+    role = f.RoleFactory(project=project, name="Test")
+    f.MembershipFactory(project=project, user=user, is_admin=True)
+
+    url = reverse("memberships-bulk-create")
+
+    data = {
+        "project_id": project.id,
+        "bulk_memberships": [
+            {"role_id": role.pk, "email": "test1@test.com"},
+            {"role_id": role.pk, "email": "test2@test.com"},
+            {"role_id": role.pk, "email": "test3@test.com"},
+            {"role_id": role.pk, "email": "test4@test.com"},
+        ]
+    }
+    client.login(user)
+    response = client.json.post(url, json.dumps(data))
+
+    assert response.status_code == 400
+    assert "reached your current limit of memberships for private" in response.data["_error_message"]
+
 
 
 def test_api_create_bulk_members_with_enough_memberships_private_project_slots_multiple_projects(client):
@@ -127,7 +154,7 @@ def test_api_create_bulk_members_without_enough_memberships_public_project_slots
     response = client.json.post(url, json.dumps(data))
 
     assert response.status_code == 400
-    assert "reached the limit of memberships for public" in response.data["_error_message"]
+    assert "reached your current limit of memberships for public" in response.data["_error_message"]
 
 
 def test_api_create_bulk_members_with_enough_memberships_public_project_slots_multiple_projects(client):
@@ -280,7 +307,7 @@ def test_api_create_membership_without_enough_memberships_private_project_slots_
     response = client.json.post(url, json.dumps(data))
 
     assert response.status_code == 400
-    assert "reached the limit of memberships for private" in response.data["_error_message"]
+    assert "reached your current limit of memberships for private" in response.data["_error_message"]
 
 
 def test_api_create_membership_with_enough_memberships_private_project_slots_multiple_projects(client):
@@ -315,7 +342,7 @@ def test_api_create_membership_without_enough_memberships_public_project_slots_o
     response = client.json.post(url, json.dumps(data))
 
     assert response.status_code == 400
-    assert "reached the limit of memberships for public" in response.data["_error_message"]
+    assert "reached your current limit of memberships for public" in response.data["_error_message"]
 
 
 def test_api_create_membership_with_enough_memberships_public_project_slots_multiple_projects(client):
@@ -346,6 +373,20 @@ def test_api_edit_membership(client):
     response = client.json.patch(url, json.dumps(data))
 
     assert response.status_code == 200
+
+def test_api_change_owner_membership_to_no_admin_return_error(client):
+    project = f.ProjectFactory()
+    membership_owner = f.MembershipFactory(project=project, user=project.owner, is_admin=True)
+    membership = f.MembershipFactory(project=project, is_admin=True)
+
+    url = reverse("memberships-detail", args=[membership_owner.id])
+    data = {"is_admin": False}
+
+    client.login(membership.user)
+    response = client.json.patch(url, json.dumps(data))
+
+    assert response.status_code == 400
+    assert 'is_admin' in response.data
 
 
 def test_api_delete_membership(client):

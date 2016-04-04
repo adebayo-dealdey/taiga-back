@@ -132,7 +132,6 @@ def test_valid_project_with_enough_public_projects_slots(client):
     client.login(user)
     response = client.json.post(url, json.dumps(data))
 
-    print(response.content)
     assert response.status_code == 201
     assert Project.objects.filter(slug="public-project-with-slots").count() == 1
 
@@ -1062,7 +1061,7 @@ def test_dict_to_project_with_no_members_private_project_slots_available(client)
     with pytest.raises(TaigaImportError) as excinfo:
         project = dict_to_project(data, owner=user)
 
-    assert "reached the limit of memberships for private" in str(excinfo.value)
+    assert "reached your current limit of memberships for private" in str(excinfo.value)
 
 
 def test_dict_to_project_with_no_members_public_project_slots_available(client):
@@ -1097,7 +1096,7 @@ def test_dict_to_project_with_no_members_public_project_slots_available(client):
     with pytest.raises(TaigaImportError) as excinfo:
         project = dict_to_project(data, owner=user)
 
-    assert "reached the limit of memberships for public" in str(excinfo.value)
+    assert "reached your current limit of memberships for public" in str(excinfo.value)
 
 
 def test_invalid_dump_import(client):
@@ -1323,7 +1322,7 @@ def test_valid_dump_import_without_enough_membership_private_project_slots_one_p
 
     response = client.post(url, {'dump': data})
     assert response.status_code == 400
-    assert "reached the limit of memberships for private" in response.data["_error_message"]
+    assert "reached your current limit of memberships for private" in response.data["_error_message"]
     assert Project.objects.filter(slug="project-without-memberships-slots").count() == 0
 
 
@@ -1370,7 +1369,7 @@ def test_valid_dump_import_without_enough_membership_public_project_slots_one_pr
 
     response = client.post(url, {'dump': data})
     assert response.status_code == 400
-    assert "reached the limit of memberships for public" in response.data["_error_message"]
+    assert "reached your current limit of memberships for public" in response.data["_error_message"]
     assert Project.objects.filter(slug="project-without-memberships-slots").count() == 0
 
 
@@ -1502,3 +1501,109 @@ def test_valid_dump_import_without_slug(client):
 
     response = client.post(url, {'dump': data})
     assert response.status_code == 201
+
+
+def test_valid_dump_import_with_the_limit_of_membership_whit_you_for_private_project(client):
+    user = f.UserFactory.create(max_memberships_private_projects=5)
+    client.login(user)
+
+    url = reverse("importer-load-dump")
+
+    data = ContentFile(bytes(json.dumps({
+        "slug": "private-project-with-memberships-limit-with-you",
+        "name": "Valid project",
+        "description": "Valid project desc",
+        "is_private": True,
+        "memberships": [
+            {
+                "email": user.email,
+                "role": "Role",
+            },
+            {
+                "email": "test2@test.com",
+                "role": "Role",
+            },
+            {
+                "email": "test3@test.com",
+                "role": "Role",
+            },
+            {
+                "email": "test4@test.com",
+                "role": "Role",
+            },
+            {
+                "email": "test5@test.com",
+                "role": "Role",
+            },
+        ],
+        "roles": [{"name": "Role"}]
+    }), "utf-8"))
+    data.name = "test"
+
+    response = client.post(url, {'dump': data})
+    assert response.status_code == 201
+    assert Project.objects.filter(slug="private-project-with-memberships-limit-with-you").count() == 1
+
+
+def test_valid_dump_import_with_the_limit_of_membership_whit_you_for_public_project(client):
+    user = f.UserFactory.create(max_memberships_public_projects=5)
+    client.login(user)
+
+    url = reverse("importer-load-dump")
+
+    data = ContentFile(bytes(json.dumps({
+        "slug": "public-project-with-memberships-limit-with-you",
+        "name": "Valid project",
+        "description": "Valid project desc",
+        "is_private": False,
+        "memberships": [
+            {
+                "email": user.email,
+                "role": "Role",
+            },
+            {
+                "email": "test2@test.com",
+                "role": "Role",
+            },
+            {
+                "email": "test3@test.com",
+                "role": "Role",
+            },
+            {
+                "email": "test4@test.com",
+                "role": "Role",
+            },
+            {
+                "email": "test5@test.com",
+                "role": "Role",
+            },
+        ],
+        "roles": [{"name": "Role"}]
+    }), "utf-8"))
+    data.name = "test"
+
+    response = client.post(url, {'dump': data})
+    assert response.status_code == 201
+    assert Project.objects.filter(slug="public-project-with-memberships-limit-with-you").count() == 1
+
+
+def test_valid_project_import_and_disabled_is_featured(client):
+    user = f.UserFactory.create()
+    client.login(user)
+
+    url = reverse("importer-list")
+    data = {
+        "name": "Imported project",
+        "description": "Imported project",
+        "roles": [{
+            "permissions": [],
+            "name": "Test"
+        }],
+        "is_featured": True
+    }
+
+    response = client.post(url, json.dumps(data), content_type="application/json")
+    assert response.status_code == 201
+    response_data = response.data
+    assert response_data["owner"] == user.email
+    assert response_data["is_featured"] == False

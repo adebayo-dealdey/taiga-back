@@ -76,7 +76,6 @@ class TaskStatusSerializer(ValidateDuplicatedNameInProjectMixin):
 
 
 class BasicTaskStatusSerializerSerializer(serializers.ModelSerializer):
-
     class Meta:
         model = models.TaskStatus
         i18n_fields = ("name",)
@@ -191,9 +190,12 @@ class MembershipSerializer(serializers.ModelSerializer):
         if project is None:
             project = self.object.project
 
-        if (self.object and
-                not services.project_has_valid_admins(project, exclude_user=self.object.user)):
-            raise serializers.ValidationError(_("In this project at least one of the users must be an active admin."))
+        if (self.object and self.object.user):
+            if self.object.user.id == project.owner_id and attrs[source] != True:
+                raise serializers.ValidationError(_("The project owner must be admin."))
+
+            if not services.project_has_valid_admins(project, exclude_user=self.object.user):
+                raise serializers.ValidationError(_("At least one user must be an active admin for this project."))
 
         return attrs
 
@@ -341,6 +343,7 @@ class ProjectDetailSerializer(ProjectSerializer):
 
     roles = ProjectRoleSerializer(source="roles", many=True, read_only=True)
     members = serializers.SerializerMethodField(method_name="get_members")
+    total_memberships = serializers.SerializerMethodField(method_name="get_total_memberships")
 
     def get_members(self, obj):
         qs = obj.memberships.filter(user__isnull=False)
@@ -350,25 +353,26 @@ class ProjectDetailSerializer(ProjectSerializer):
         serializer = ProjectMemberSerializer(qs, many=True)
         return serializer.data
 
+    def get_total_memberships(self, obj):
+        return services.get_total_project_memberships(obj)
+
 
 class ProjectDetailAdminSerializer(ProjectDetailSerializer):
+    is_private_extra_info = serializers.SerializerMethodField(method_name="get_is_private_extra_info")
     max_memberships = serializers.SerializerMethodField(method_name="get_max_memberships")
-    total_memberships = serializers.SerializerMethodField(method_name="get_total_memberships")
-    can_is_private_be_updated = serializers.SerializerMethodField(method_name="get_can_is_private_be_updated")
 
     class Meta:
         model = models.Project
         read_only_fields = ("created_date", "modified_date", "slug", "blocked_code")
         exclude = ("logo", "last_us_ref", "last_task_ref", "last_issue_ref")
 
+    def get_is_private_extra_info(self, obj):
+        return services.check_if_project_privacity_can_be_changed(obj)
+
     def get_max_memberships(self, obj):
         return services.get_max_memberships_for_project(obj)
 
-    def get_total_memberships(self, obj):
-        return services.get_total_project_memberships(obj)
 
-    def get_can_is_private_be_updated(self, obj):
-        return services.check_if_project_privacity_can_be_changed(obj)
 
 
 ######################################################
