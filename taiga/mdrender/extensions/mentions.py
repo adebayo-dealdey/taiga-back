@@ -22,17 +22,16 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
+from django.contrib.auth import get_user_model
 
 from markdown.extensions import Extension
 from markdown.inlinepatterns import Pattern
 from markdown.util import etree, AtomicString
 
-from taiga.users.models import User
-
 
 class MentionsExtension(Extension):
     def extendMarkdown(self, md, md_globals):
-        MENTION_RE = r'(@)([a-zA-Z0-9.-\.]+)'
+        MENTION_RE = r'(@)([a-zA-Z0-9.-\._]+)'
         mentionsPattern = MentionsPattern(MENTION_RE)
         mentionsPattern.md = md
         md.inlinePatterns.add('mentions', mentionsPattern, '_end')
@@ -43,8 +42,8 @@ class MentionsPattern(Pattern):
         username = m.group(3)
 
         try:
-            user = User.objects.get(username=username)
-        except User.DoesNotExist:
+            user = get_user_model().objects.get(username=username)
+        except get_user_model().DoesNotExist:
             return "@{}".format(username)
 
         url = "/profile/{}".format(username)

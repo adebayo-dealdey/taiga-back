@@ -19,10 +19,10 @@ from contextlib import suppress
 
 from functools import partial
 from django.apps import apps
+from django.contrib.auth import get_user_model
 from django.contrib.contenttypes.models import ContentType
 from django.core.exceptions import ObjectDoesNotExist
 
-from taiga.base.utils.urls import get_absolute_url
 from taiga.base.utils.iterators import as_tuple
 from taiga.base.utils.iterators import as_dict
 from taiga.mdrender.service import render as mdrender
@@ -49,7 +49,7 @@ def _get_generic_values(ids:tuple, *, typename=None, attr:str="name") -> tuple:
 
 @as_dict
 def _get_users_values(ids:set) -> dict:
-    user_model = apps.get_model("users", "User")
+    user_model = get_user_model()
     ids = filter(lambda x: x is not None, ids)
     qs = user_model.objects.filter(pk__in=tuple(ids))
 
@@ -266,7 +266,7 @@ def userstory_freezer(us) -> dict:
     snapshot = {
         "ref": us.ref,
         "owner": us.owner_id,
-        "status": us.status_id,
+        "status": us.status.id if us.status else None,
         "is_closed": us.is_closed,
         "finish_date": str(us.finish_date),
         "backlog_order": us.backlog_order,
@@ -297,7 +297,7 @@ def issue_freezer(issue) -> dict:
     snapshot = {
         "ref": issue.ref,
         "owner": issue.owner_id,
-        "status": issue.status_id,
+        "status": issue.status.id if issue.status else None,
         "priority": issue.priority_id,
         "severity": issue.severity_id,
         "type": issue.type_id,
@@ -321,7 +321,7 @@ def task_freezer(task) -> dict:
     snapshot = {
         "ref": task.ref,
         "owner": task.owner_id,
-        "status": task.status_id,
+        "status": task.status.id if task.status else None,
         "milestone": task.milestone_id,
         "subject": task.subject,
         "description": task.description,
